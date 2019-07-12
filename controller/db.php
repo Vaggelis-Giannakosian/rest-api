@@ -14,7 +14,7 @@
         {
             if(self::$writeDBConnection === null)
             {
-                self::$writeDBConnection = new PDO('mysql:dbname=taskssdb;host=localhost;charset=utf8', 'root','');
+                self::$writeDBConnection = new PDO('mysql:dbname=tasksdb;host=localhost;charset=utf8', 'root','');
                 self::$writeDBConnection->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
                 self::$writeDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES,false);
             }
