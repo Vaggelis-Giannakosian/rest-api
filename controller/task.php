@@ -150,7 +150,8 @@ catch (PDOException $ex)
         }
 
 
-    }elseif (array_key_exists('completed',$_GET)){
+    }
+    elseif (array_key_exists('completed',$_GET)){
 
         $completed = $_GET['completed'];
 
@@ -218,6 +219,105 @@ catch (PDOException $ex)
             $response->send();
             exit;
         }
+
+    }
+    elseif (array_key_exists('page',$_GET)){
+
+        if($_SERVER['REQUEST_METHOD'] === 'GET'){
+
+            $page = $_GET['page'];
+
+            if(!is_numeric($page) || $page<=0 || $page==''){
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->setMessages("The page number must be greater or equal to 1");
+                $response->send();
+                exit;
+            }
+
+            $limitPerPage = 20;
+            $offset = ($page-1)*$limitPerPage;
+            try{
+
+                $query = $readDB->prepare('select id,title,description,DATE_FORMAT(deadline,"%d/%m/%Y %H:%i") as deadline, completed from tbltasks LIMIT  :limit offset :offset');
+                $query->bindParam(':offset', $offset,PDO::PARAM_INT);
+                $query->bindParam(':limit', $limitPerPage,PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if($rowCount == 0 && $page==1){
+                    $response = new Response();
+                    $response->setHttpStatusCode(200);
+                    $response->setSuccess(true);
+                    $response->setToCache(true);
+                    $response->setData(['rows_returned'=>0,'tasks'=>[]]);
+                    $response->send();
+                    exit;
+                }
+                if($rowCount == 0){
+                    $response = new Response();
+                    $response->setHttpStatusCode(404);
+                    $response->setSuccess(false);
+                    $response->setMessages('This page is not found');
+                    $response->send();
+                    exit;
+                }
+
+
+                $taskArray = array();
+
+                while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                    $task = new Task($row['id'],$row['title'] , $row['description'], $row['deadline'], $row['completed']);
+                    $taskArray [] = $task->returnTaskAsArray();
+                }
+
+                $returnData = array();
+                $returnData['rows_returned'] = $rowCount;
+                $returnData['tasks'] = $taskArray;
+
+                $response = new Response();
+                $response->setHttpStatusCode(200);
+                $response->setSuccess(true);
+                $response->setToCache(true);
+                $response->setData($returnData);
+                $response->send();
+                exit;
+
+            }
+            catch (PDOException $pex){
+                error_log('Database query - '.$pex,0);
+                $response = new Response();
+                $response->setHttpStatusCode(500);
+                $response->setSuccess(false);
+                $response->setMessages('Failed to get tasks');
+                $response->send();
+                exit;
+            }
+            catch (TaskException $tex)
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(500);
+                $response->setSuccess(false);
+                $response->setMessages($tex->getMessage());
+                $response->send();
+                exit;
+            }
+
+
+        }else{
+            $response = new Response();
+            $response->setHttpStatusCode(405);
+            $response->setSuccess(false);
+            $response->setMessages("Request method not allowed");
+            $response->send();
+            exit;
+        }
+
+
+
+
 
     }
     elseif (empty($_GET))
