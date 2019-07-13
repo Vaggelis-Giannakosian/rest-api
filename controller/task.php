@@ -39,7 +39,6 @@ catch (PDOException $ex)
     }
 
 /**
- *
  * GET METHOD
  */
     if($_SERVER['REQUEST_METHOD'] == 'GET'){
@@ -94,15 +93,54 @@ catch (PDOException $ex)
             exit;
         }
 
-    }elseif($_SERVER['REQUEST_METHOD'] == 'DELETE'){
+    }
+    /**
+     * Delete Method
+     */
+    elseif($_SERVER['REQUEST_METHOD'] == 'DELETE'){
+
+        try{
+            $query = $writeDB->prepare('delete from tbltasks where id = :taskid');
+            $query->bindParam(':taskid',$taskid, PDO::PARAM_INT);
+            $query->execute();
+            $rowCount = $query->rowCount();
+
+            if($rowCount === 0){
+                $response = new Response();
+                $response->setHttpStatusCode(404);
+                $response->setSuccess(false);
+                $response->setMessages('Task not found');
+                $response->send();
+                exit;
+            }
+
+            $response = new Response();
+            $response->setHttpStatusCode(200);
+            $response->setSuccess(true);
+            $response->setMessages('Task deleted successfully');
+            $response->send();
+            exit;
+
+        }catch(PDOException $ex)
+        {
+            error_log("Database query error - ".$ex,0);
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->setMessages('Failed to delete Task');
+            $response->send();
+            exit;
+        }
+
+    }
+    /**
+     * Patch Method
+     */
+    elseif($_SERVER['REQUEST_METHOD'] == 'PATCH'){
 
 
-
-
-    }elseif($_SERVER['REQUEST_METHOD'] == 'PATCH'){
-
-
-    }else{
+    }
+    else{
         $response = new Response();
         $response->setHttpStatusCode(405);
         $response->setSuccess(false);
