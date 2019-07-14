@@ -80,7 +80,7 @@ require_once '../model/Response.php';
 
     $fullname = trim($postData->fullname);
     $username = trim($postData->username);
-    $password = $postData->fullname;
+    $password = $postData->password;
 
 
     try{

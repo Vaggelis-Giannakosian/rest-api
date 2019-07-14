@@ -11,3 +11,4 @@ RewriteRule ^tasks/complete$ controller/task.php?completed=Y [L]
 RewriteRule ^tasks/incomplete$ controller/task.php?completed=N [L]
 
 RewriteRule ^users$ controller/users.php [L]
+RewriteRule ^sessions$ controller/sessions.php [L]
