@@ -20,15 +20,93 @@ try{
 }
 
 if(array_key_exists('sessionid',$_GET)){
+
+    $sessionId = $_GET['sessionid'];
+    if($sessionId === '' || !is_numeric($sessionId))
+    {
+        $response = new Response();
+        $response->setHttpStatusCode(400);
+        $response->setSuccess(false);
+        $sessionId === '' ?  $response->setMessages('Session ID cannot be blank') : false;
+        !is_numeric($sessionId) ?  $response->setMessages('Session ID must be numeric') : false;
+        $response->send();
+        exit;
+    }
+
+    if(!isset($_SERVER['HTTP_AUTHORIZATION']) || strlen($_SERVER['HTTP_AUTHORIZATION']) < 1 )
+    {
+        $response = new Response();
+        $response->setHttpStatusCode(401);
+        $response->setSuccess(false);
+        !isset($_SERVER['HTTP_AUTHORIZATION'])  ?  $response->setMessages('Access Token is missing from the header') : false;
+        strlen($_SERVER['HTTP_AUTHORIZATION']) < 1 ?  $response->setMessages('Access Token cannot be blank') : false;
+        $response->send();
+        exit;
+    }
+
+    $accessToken = $_SERVER['HTTP_AUTHORIZATION'];
+
+
     if($_SERVER['REQUEST_METHOD'] == 'DELETE')
     {
+        try{
+            $query=$writeDb->prepare('delete from tblsessions where id = :sessionid and accesstoken = :accesstoken');
+            $query->bindParam(':sessionid',$sessionId,PDO::PARAM_INT);
+            $query->bindParam(':accesstoken',$accessToken,PDO::PARAM_STR);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if($rowCount === 0)
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->setMessages('Failed to logout of this session.');
+                $response->send();
+                exit;
+            }
+
+            $returnData = array();
+            $returnData['session_id'] = intval($sessionId);
+
+
+            $response = new Response();
+            $response->setHttpStatusCode(200);
+            $response->setData($returnData);
+            $response->setSuccess(true);
+            $response->setMessages('Logged out successfully.');
+            $response->send();
+            exit;
+
+        }
+        catch (PDOException $ex)
+        {
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->setMessages('There was an issue logging out. Please try again.');
+            $response->send();
+            exit;
+        }
+
 
     }
+
     elseif($_SERVER['REQUEST_METHOD'] == 'PATCH')
     {
 
     }
-}elseif(empty($_GET))
+    else{
+        $response = new Response();
+        $response->setHttpStatusCode(405);
+        $response->setSuccess(false);
+        $response->setMessages('Request method not allowed');
+        $response->send();
+        exit;
+    }
+}
+elseif(empty($_GET))
 {
 
     if($_SERVER['REQUEST_METHOD'] == 'POST')
@@ -119,7 +197,7 @@ if(array_key_exists('sessionid',$_GET)){
                 exit;
             }
 
-            if(!password_verify('7777','$2y$10$JSh7UF00lXLw/PYAML6YY.KtH1ezFLmTfh7/2ZdDp2nK86oFXSuDW'))
+            if(!password_verify($password,$returnedPassword))
             {
                 $query = $writeDb->prepare('update tblusers set loginattempts = loginattempts + 1 where id =:id');
                 $query->bindParam(':id',$returnedId,PDO::PARAM_INT);
@@ -129,8 +207,6 @@ if(array_key_exists('sessionid',$_GET)){
                 $response->setHttpStatusCode(401);
                 $response->setSuccess(false);
                 $response->setMessages('Username or password is incorrect');
-                $response->setMessages($returnedPassword);
-                $response->setMessages(password_hash('7777',PASSWORD_DEFAULT));
                 $response->send();
                 exit;
 
